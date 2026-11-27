@@ -6,8 +6,6 @@ const db = require('../config/db');
 
 // REGISTRO DE USUARIOS
 const registrarUsuario = async (req, res) => {
-    console.log(req.body);
-
     const {
         nombre,
         apellidos,
@@ -68,8 +66,6 @@ const registrarUsuario = async (req, res) => {
 
 // INICIO DE SESIÓN
 const login = async (req, res) => {
-    console.log('DATOS RECIBIDOS:', req.body);
-
     const { usuario, password } = req.body;
 
     if (!usuario || !password) {
@@ -103,7 +99,6 @@ const login = async (req, res) => {
             });
         }
 
-        // GENERAR TOKEN JWT
         const token = jwt.sign(
             {
                 id: usuarioEncontrado.id,
@@ -121,6 +116,11 @@ const login = async (req, res) => {
             token: token,
             usuario: {
                 id: usuarioEncontrado.id,
+                nombre: usuarioEncontrado.nombre,
+                apellidos: usuarioEncontrado.apellidos,
+                fecha_nacimiento: usuarioEncontrado.fecha_nacimiento,
+                correo: usuarioEncontrado.correo,
+                telefono: usuarioEncontrado.telefono,
                 usuario: usuarioEncontrado.usuario,
                 rol: usuarioEncontrado.rol
             }

@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import './App.css';
+
 import Actividades from './components/Actividades';
 import ActividadesAprendiz from './components/ActividadesAprendiz';
 import EntregasAdmin from './components/EntregasAdmin';
@@ -23,6 +24,26 @@ function App() {
   const [aprendices, setAprendices] = useState([]);
   const [cargando, setCargando] = useState(false);
 
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [perfilAbierto, setPerfilAbierto] = useState(false);
+
+  const nombreCompleto = sesion
+    ? `${sesion.nombre || ''} ${sesion.apellidos || ''}`.trim() || sesion.usuario
+    : '';
+
+  const inicial = sesion
+    ? (sesion.nombre || sesion.usuario || 'U').charAt(0).toUpperCase()
+    : 'U';
+
+  const irA = (id) => {
+    document.getElementById(id)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+
+    setMenuAbierto(false);
+  };
+
   const cerrarSesion = () => {
     setSesion(null);
     setToken('');
@@ -31,6 +52,8 @@ function App() {
     setPassword('');
     setMensaje('');
     setModo('login');
+    setMenuAbierto(false);
+    setPerfilAbierto(false);
     localStorage.removeItem('token');
   };
 
@@ -125,101 +148,230 @@ function App() {
     }
   };
 
+  // MENÚ LATERAL
+  const menuLateral = (esAdmin) => (
+    <aside className={`menu-lateral ${menuAbierto ? 'menu-visible' : ''}`}>
+      <div className="logo-sena">
+        <div className="logo-sena-icono">S</div>
+        <div>
+          <h2>SENA</h2>
+          <span>Gestión Académica</span>
+        </div>
+      </div>
+
+      <div className="menu-etiqueta">MENÚ PRINCIPAL</div>
+
+      <nav className="navegacion-lateral">
+        <button onClick={() => irA('inicio')} className="opcion-menu activa">
+          <span>⌂</span> Inicio
+        </button>
+
+        {esAdmin ? (
+          <>
+            <button onClick={() => irA('aprendices')} className="opcion-menu">
+              <span>♙</span> Aprendices
+            </button>
+
+            <button onClick={() => irA('actividades')} className="opcion-menu">
+              <span>▤</span> Actividades
+            </button>
+
+            <button onClick={() => irA('entregas')} className="opcion-menu">
+              <span>☷</span> Entregas
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={() => irA('actividades')} className="opcion-menu">
+              <span>▤</span> Mis cursos
+            </button>
+
+            <button onClick={() => irA('entregas')} className="opcion-menu">
+              <span>☷</span> Mis entregas
+            </button>
+
+            <button onClick={() => irA('perfil')} className="opcion-menu">
+              <span>♙</span> Mi perfil
+            </button>
+          </>
+        )}
+      </nav>
+
+      <div className="menu-inferior">
+        <div className="mensaje-sena">
+          <strong>SENA</strong>
+          <p>Más trabajo, más oportunidades.</p>
+        </div>
+
+        <button className="opcion-menu opcion-salir" onClick={cerrarSesion}>
+          <span>⇥</span> Cerrar sesión
+        </button>
+      </div>
+    </aside>
+  );
+
+  // ENCABEZADO
+  const encabezado = (subtitulo) => (
+    <header className="encabezado-principal">
+      <div className="encabezado-izquierda">
+        <button
+          className="boton-menu-movil"
+          onClick={() => setMenuAbierto(!menuAbierto)}
+          aria-label="Abrir menú"
+        >
+          ☰
+        </button>
+
+        <div>
+          <h1>Gestión Académica</h1>
+          <p>{subtitulo}</p>
+        </div>
+      </div>
+
+      <div className="encabezado-derecha">
+        <div className="perfil-encabezado">
+          <button
+            className="perfil-boton"
+            onClick={() => setPerfilAbierto(!perfilAbierto)}
+          >
+            <div className="avatar-usuario">{inicial}</div>
+
+            <div className="perfil-datos">
+              <strong>{sesion.usuario}</strong>
+              <span>{sesion.rol === 'admin' ? 'Administrador' : 'Aprendiz'}</span>
+            </div>
+
+            <span className="flecha-perfil">⌄</span>
+          </button>
+
+          {perfilAbierto && (
+            <div className="menu-perfil">
+              <button onClick={() => irA(sesion.rol === 'admin' ? 'aprendices' : 'perfil')}>
+                Mi información
+              </button>
+              <button onClick={cerrarSesion}>
+                Cerrar sesión
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+
   // PANEL DEL ADMINISTRADOR
   if (sesion && sesion.rol === 'admin') {
     return (
-      <div className="panel-principal">
+      <div className="aplicacion">
+        {menuLateral(true)}
 
-        <header className="barra-superior">
-          <div className="marca-sistema">
-            <div className="marca-icono">📘</div>
-            <div>
-              <h1>Gestión Académica</h1>
-              <span>Panel administrativo</span>
-            </div>
-          </div>
+        <div className="contenido-principal">
+          {encabezado('Panel administrativo')}
 
-          <div className="usuario-superior">
-            <div className="avatar-usuario">A</div>
-            <div className="datos-superior">
-              <strong>{sesion.usuario}</strong>
-              <small>Administrador</small>
-            </div>
-            <button className="boton-salir" onClick={cerrarSesion}>
-              Cerrar sesión
-            </button>
-          </div>
-        </header>
-
-        <main className="contenido-panel">
-          <div className="bienvenida-panel">
-            <span className="etiqueta-seccion">ADMINISTRACIÓN DEL SISTEMA</span>
-            <h2>¡Bienvenido, {sesion.usuario}!</h2>
-            <p>Desde aquí puedes administrar aprendices, actividades y entregas.</p>
-          </div>
-
-          <div className="tarjeta-seccion">
-            <div className="titulo-seccion-panel">
+          <main className="contenido-dashboard">
+            <section className="banner-bienvenida" id="inicio">
               <div>
-                <h3>👥 Listado de aprendices</h3>
-                <p>Consulta los usuarios registrados en el sistema.</p>
+                <span className="texto-pequeno">PANEL DE ADMINISTRACIÓN</span>
+                <h2>¡Bienvenido, {nombreCompleto}!</h2>
+                <p>
+                  Administra aprendices, actividades y entregas desde un solo lugar.
+                </p>
               </div>
-              <span className="contador-actividades">
-                {aprendices.length} aprendices
-              </span>
-            </div>
 
-            {cargando ? (
-              <p>Cargando aprendices...</p>
-            ) : (
-              <div className="tabla-contenedor">
-                <table>
-                  <thead>
-                    <tr>
-                      {['ID', 'Nombre', 'Apellidos', 'Correo', 'Teléfono', 'Usuario', 'Rol'].map((titulo) => (
-                        <th key={titulo}>{titulo}</th>
-                      ))}
-                    </tr>
-                  </thead>
+              <div className="banner-icono">📚</div>
+            </section>
 
-                  <tbody>
-                    {aprendices.map((persona) => (
-                      <tr key={persona.id}>
-                        <td>{persona.id}</td>
-                        <td>{persona.nombre}</td>
-                        <td>{persona.apellidos}</td>
-                        <td>{persona.correo}</td>
-                        <td>{persona.telefono}</td>
-                        <td>{persona.usuario}</td>
-                        <td>
-                          <span className="etiqueta-rol">{persona.rol}</span>
-                        </td>
+            <section className="resumen-tarjetas">
+              <article className="tarjeta-resumen">
+                <div className="resumen-icono azul">♙</div>
+                <div>
+                  <span>Aprendices registrados</span>
+                  <strong>{aprendices.length}</strong>
+                </div>
+              </article>
+
+              <article className="tarjeta-resumen">
+                <div className="resumen-icono verde">▤</div>
+                <div>
+                  <span>Gestión académica</span>
+                  <strong>Activa</strong>
+                </div>
+              </article>
+
+              <article className="tarjeta-resumen">
+                <div className="resumen-icono naranja">☷</div>
+                <div>
+                  <span>Usuario conectado</span>
+                  <strong>Administrador</strong>
+                </div>
+              </article>
+            </section>
+
+            <section className="tarjeta-dashboard" id="aprendices">
+              <div className="titulo-tarjeta">
+                <div>
+                  <span className="texto-pequeno">USUARIOS DEL SISTEMA</span>
+                  <h3>Listado de aprendices</h3>
+                  <p>Consulta la información de los aprendices registrados.</p>
+                </div>
+
+                <span className="contador-actividades">
+                  {aprendices.length} aprendices
+                </span>
+              </div>
+
+              {cargando ? (
+                <p>Cargando aprendices...</p>
+              ) : (
+                <div className="tabla-contenedor">
+                  <table>
+                    <thead>
+                      <tr>
+                        {['ID', 'Nombre', 'Apellidos', 'Correo', 'Teléfono', 'Usuario', 'Rol'].map((titulo) => (
+                          <th key={titulo}>{titulo}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
 
-                {aprendices.length === 0 && (
-                  <p>No hay aprendices registrados.</p>
-                )}
-              </div>
-            )}
-          </div>
+                    <tbody>
+                      {aprendices.map((persona) => (
+                        <tr key={persona.id}>
+                          <td>{persona.id}</td>
+                          <td>{persona.nombre}</td>
+                          <td>{persona.apellidos}</td>
+                          <td>{persona.correo}</td>
+                          <td>{persona.telefono}</td>
+                          <td>{persona.usuario}</td>
+                          <td>
+                            <span className="etiqueta-rol">{persona.rol}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
 
-          <div className="tarjeta-seccion">
-            <Actividades token={token} />
-          </div>
+                  {aprendices.length === 0 && (
+                    <p>No hay aprendices registrados.</p>
+                  )}
+                </div>
+              )}
+            </section>
 
-          <div className="tarjeta-seccion">
-            <EntregasAdmin token={token} />
-          </div>
+            <section className="tarjeta-dashboard" id="actividades">
+              <Actividades token={token} />
+            </section>
 
-          {mensaje && <div className="mensaje-actividad">{mensaje}</div>}
-        </main>
+            <section className="tarjeta-dashboard" id="entregas">
+              <EntregasAdmin token={token} />
+            </section>
 
-        <footer className="pie-pagina">
-          Sistema de Gestión Académica
-        </footer>
+            {mensaje && <div className="mensaje-actividad">{mensaje}</div>}
+          </main>
+
+          <footer className="pie-dashboard">
+            SENA © 2026 | Formación para el trabajo
+          </footer>
+        </div>
       </div>
     );
   }
@@ -227,65 +379,87 @@ function App() {
   // PANEL DEL APRENDIZ
   if (sesion && sesion.rol === 'aprendiz') {
     return (
-      <div className="panel-principal">
+      <div className="aplicacion">
+        {menuLateral(false)}
 
-        <header className="barra-superior">
-          <div className="marca-sistema">
-            <div className="marca-icono">📘</div>
-            <div>
-              <h1>Gestión Académica</h1>
-              <span>Panel del aprendiz</span>
-            </div>
-          </div>
+        <div className="contenido-principal">
+          {encabezado('Panel del aprendiz')}
 
-          <div className="usuario-superior">
-            <div className="avatar-usuario">
-              {sesion.usuario.charAt(0).toUpperCase()}
-            </div>
-            <div className="datos-superior">
-              <strong>{sesion.usuario}</strong>
-              <small>Aprendiz</small>
-            </div>
-            <button className="boton-salir" onClick={cerrarSesion}>
-              Cerrar sesión
-            </button>
-          </div>
-        </header>
-
-        <main className="contenido-panel">
-
-          <div className="bienvenida-panel tarjeta-bienvenida-aprendiz">
-            <span className="etiqueta-seccion">MI ESPACIO ACADÉMICO</span>
-            <h2>¡Hola, {sesion.usuario}! 👋</h2>
-            <p>Bienvenido a tu panel de control. Aquí puedes consultar y entregar tus actividades.</p>
-
-            <div className="datos-aprendiz">
+          <main className="contenido-dashboard">
+            <section className="banner-bienvenida" id="inicio">
               <div>
-                <small>IDENTIFICACIÓN</small>
-                <strong>{sesion.id}</strong>
+                <span className="texto-pequeno">MI ESPACIO ACADÉMICO</span>
+                <h2>¡Hola, {nombreCompleto}! 👋</h2>
+                <p>
+                  Bienvenido a tu espacio de aprendizaje. Consulta tus actividades
+                  y revisa el estado de tus entregas.
+                </p>
               </div>
 
-              <div>
-                <small>USUARIO</small>
-                <strong>{sesion.usuario}</strong>
+              <div className="banner-icono">🎓</div>
+            </section>
+
+            <section className="tarjeta-dashboard perfil-aprendiz" id="perfil">
+              <div className="titulo-tarjeta">
+                <div>
+                  <span className="texto-pequeno">INFORMACIÓN PERSONAL</span>
+                  <h3>Mi perfil</h3>
+                  <p>Datos de tu cuenta en el sistema académico.</p>
+                </div>
+                <div className="avatar-perfil-grande">{inicial}</div>
               </div>
 
-              <div>
-                <small>ROL</small>
-                <strong>Aprendiz</strong>
+              <div className="informacion-perfil">
+                <div className="dato-perfil">
+                  <span>Nombre completo</span>
+                  <strong>{nombreCompleto}</strong>
+                </div>
+
+                <div className="dato-perfil">
+                  <span>Número de identificación</span>
+                  <strong>{sesion.id}</strong>
+                </div>
+
+                <div className="dato-perfil">
+                  <span>Usuario</span>
+                  <strong>{sesion.usuario}</strong>
+                </div>
+
+                <div className="dato-perfil">
+                  <span>Correo electrónico</span>
+                  <strong>{sesion.correo || 'No registrado'}</strong>
+                </div>
+
+                <div className="dato-perfil">
+                  <span>Teléfono</span>
+                  <strong>{sesion.telefono || 'No registrado'}</strong>
+                </div>
+
+                <div className="dato-perfil">
+                  <span>Programa de formación</span>
+                  <strong>No registrado</strong>
+                </div>
+
+                <div className="dato-perfil">
+                  <span>Rol</span>
+                  <strong>Aprendiz</strong>
+                </div>
               </div>
-            </div>
-          </div>
+            </section>
 
-          <div className="tarjeta-seccion">
-            <ActividadesAprendiz token={token} />
-          </div>
+            <section className="tarjeta-dashboard" id="actividades">
+              <ActividadesAprendiz token={token} />
+            </section>
 
-        </main>
+            <div id="entregas"></div>
 
-        <footer className="pie-pagina">
-          Sistema de Gestión Académica
-        </footer>
+            {mensaje && <div className="mensaje-actividad">{mensaje}</div>}
+          </main>
+
+          <footer className="pie-dashboard">
+            SENA © 2026 | Formación para el trabajo
+          </footer>
+        </div>
       </div>
     );
   }
@@ -293,16 +467,16 @@ function App() {
   // REGISTRO E INICIO DE SESIÓN
   return (
     <div className="pantalla-autenticacion">
-
       <div className="presentacion-login">
-        <div className="logo-login">📘</div>
+        <div className="logo-login">S</div>
         <h1>Gestión Académica</h1>
-        <p>Un espacio para administrar actividades, entregas y aprendizaje.</p>
+        <p>
+          Un espacio para administrar actividades, entregas y aprendizaje.
+        </p>
         <div className="decoracion-login">✦</div>
       </div>
 
       <div className="contenedor contenedor-login">
-
         <div className="botones">
           <button
             type="button"
@@ -328,7 +502,10 @@ function App() {
         </div>
 
         <div className="titulo-login">
-          <h2>{modo === 'registro' ? 'Crear una cuenta' : '¡Qué bueno tenerte de vuelta!'}</h2>
+          <h2>
+            {modo === 'registro' ? 'Crear una cuenta' : '¡Qué bueno tenerte de vuelta!'}
+          </h2>
+
           <p>
             {modo === 'registro'
               ? 'Completa tus datos para registrarte.'
@@ -337,7 +514,6 @@ function App() {
         </div>
 
         <form onSubmit={manejarEnvio}>
-
           {modo === 'registro' && (
             <>
               <label>Nombres</label>
@@ -430,7 +606,7 @@ function App() {
       </div>
 
       <footer className="pie-login">
-        Sistema de Gestión Académica
+        SENA © 2026 | Formación para el trabajo
       </footer>
     </div>
   );

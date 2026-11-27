@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 function ActividadesAprendiz({ token }) {
   const [actividades, setActividades] = useState([]);
   const [respuestas, setRespuestas] = useState({});
+  const [archivosSeleccionados, setArchivosSeleccionados] = useState({});
   const [misEntregas, setMisEntregas] = useState([]);
   const [mensaje, setMensaje] = useState('');
+  const [enviando, setEnviando] = useState(false);
 
   const cargarActividades = async () => {
     try {
@@ -58,27 +60,74 @@ function ActividadesAprendiz({ token }) {
     cargarMisEntregas();
   }, [token]);
 
-  const enviarEntrega = async (idActividad) => {
-    const respuestaAprendiz = respuestas[idActividad];
+  const seleccionarArchivos = (idActividad, lista) => {
+    const archivos = Array.from(lista);
 
-    if (!respuestaAprendiz || !respuestaAprendiz.trim()) {
-      setMensaje('Escribe tu respuesta antes de enviarla');
+    if (archivos.length > 5) {
+      setMensaje('Solo puedes adjuntar hasta 5 archivos');
       return;
     }
 
+    const tamanoMaximo = 10 * 1024 * 1024;
+
+    const extensionesPermitidas = [
+      'pdf', 'doc', 'docx', 'xls', 'xlsx',
+      'ppt', 'pptx', 'jpg', 'jpeg', 'png',
+      'webp', 'txt'
+    ];
+
+    for (const archivo of archivos) {
+      const extension = archivo.name.split('.').pop().toLowerCase();
+
+      if (!extensionesPermitidas.includes(extension)) {
+        setMensaje(`El archivo ${archivo.name} no tiene un formato permitido`);
+        return;
+      }
+
+      if (archivo.size > tamanoMaximo) {
+        setMensaje(`El archivo ${archivo.name} supera los 10 MB`);
+        return;
+      }
+    }
+
+    setArchivosSeleccionados((anteriores) => ({
+      ...anteriores,
+      [idActividad]: archivos
+    }));
+
+    setMensaje('');
+  };
+
+  const enviarEntrega = async (idActividad) => {
+    const respuestaAprendiz = respuestas[idActividad] || '';
+    const archivos = archivosSeleccionados[idActividad] || [];
+
+    if (!respuestaAprendiz.trim() && archivos.length === 0) {
+      setMensaje('Escribe una respuesta o adjunta al menos un archivo');
+      return;
+    }
+
+    const formulario = new FormData();
+
+    formulario.append('id_actividad', idActividad);
+    formulario.append('respuesta', respuestaAprendiz);
+
+    archivos.forEach((archivo) => {
+      formulario.append('archivos', archivo);
+    });
+
     try {
+      setEnviando(true);
+      setMensaje('');
+
       const respuesta = await fetch(
         'http://localhost:3000/api/entregas',
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`
           },
-          body: JSON.stringify({
-            id_actividad: idActividad,
-            respuesta: respuestaAprendiz
-          })
+          body: formulario
         }
       );
 
@@ -91,10 +140,49 @@ function ActividadesAprendiz({ token }) {
           [idActividad]: ''
         }));
 
-        cargarMisEntregas();
+        setArchivosSeleccionados((anteriores) => ({
+          ...anteriores,
+          [idActividad]: []
+        }));
+
+        await cargarMisEntregas();
       }
     } catch {
       setMensaje('Error de conexión con el servidor');
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const descargarArchivo = async (idEntrega, archivoId, nombre) => {
+    try {
+      const respuesta = await fetch(
+        `http://localhost:3000/api/entregas/${idEntrega}/archivos/${archivoId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!respuesta.ok) {
+        setMensaje('No se pudo descargar el archivo');
+        return;
+      }
+
+      const archivo = await respuesta.blob();
+      const url = window.URL.createObjectURL(archivo);
+      const enlace = document.createElement('a');
+
+      enlace.href = url;
+      enlace.download = nombre;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setMensaje('Error al descargar el archivo');
     }
   };
 
@@ -129,11 +217,43 @@ function ActividadesAprendiz({ token }) {
               }
             />
 
+            <div className="selector-archivos">
+              <label>
+                Adjuntar documentos o fotografías
+              </label>
+
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,.txt"
+                onChange={(e) =>
+                  seleccionarArchivos(actividad.id, e.target.files)
+                }
+              />
+
+              {archivosSeleccionados[actividad.id]?.length > 0 && (
+                <div>
+                  <p>Archivos seleccionados:</p>
+
+                  {archivosSeleccionados[actividad.id].map((archivo, indice) => (
+                    <p key={`${archivo.name}-${indice}`}>
+                      <span>📎 {archivo.name}</span>
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              <small>
+                Máximo 5 archivos de 10 MB cada uno.
+              </small>
+            </div>
+
             <button
               type="button"
+              disabled={enviando}
               onClick={() => enviarEntrega(actividad.id)}
             >
-              Enviar actividad
+              {enviando ? 'Enviando...' : 'Enviar actividad'}
             </button>
           </article>
         ))
@@ -151,7 +271,8 @@ function ActividadesAprendiz({ token }) {
             <h4>{entrega.actividad}</h4>
 
             <p>
-              <strong>Mi respuesta:</strong> {entrega.respuesta}
+              <strong>Mi respuesta:</strong>{' '}
+              {entrega.respuesta || 'Entrega con archivos adjuntos'}
             </p>
 
             <p>
@@ -162,6 +283,30 @@ function ActividadesAprendiz({ token }) {
               <strong>Observación del administrador:</strong>{' '}
               {entrega.observacion || 'Aún no hay observaciones.'}
             </p>
+
+            {entrega.archivos?.length > 0 && (
+              <div>
+                <strong>Mis archivos adjuntos:</strong>
+
+                {entrega.archivos.map((archivo) => (
+                  <p key={archivo.id}>
+                    📎 {archivo.nombre_original}{' '}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        descargarArchivo(
+                          entrega.id,
+                          archivo.id,
+                          archivo.nombre_original
+                        )
+                      }
+                    >
+                      Descargar
+                    </button>
+                  </p>
+                ))}
+              </div>
+            )}
           </article>
         ))
       )}

@@ -62,6 +62,38 @@ function EntregasAdmin({ token }) {
     }
   };
 
+  const descargarArchivo = async (idEntrega, archivoId, nombre) => {
+    try {
+      const respuesta = await fetch(
+        `http://localhost:3000/api/entregas/${idEntrega}/archivos/${archivoId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (!respuesta.ok) {
+        setMensaje('No se pudo descargar el archivo');
+        return;
+      }
+
+      const archivo = await respuesta.blob();
+      const url = window.URL.createObjectURL(archivo);
+      const enlace = document.createElement('a');
+
+      enlace.href = url;
+      enlace.download = nombre;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setMensaje('Error al descargar el archivo');
+    }
+  };
+
   const obtenerClaseEstado = (estado) => {
     if (estado === 'aprobada' || estado === 'aprobado') {
       return 'estado-aprobado';
@@ -81,7 +113,7 @@ function EntregasAdmin({ token }) {
         <div>
           <span className="etiqueta-seccion">EVALUACIÓN ACADÉMICA</span>
           <h3>Entregas de los aprendices</h3>
-          <p>Revisa las respuestas y registra las calificaciones.</p>
+          <p>Revisa las respuestas, descarga archivos y registra las calificaciones.</p>
         </div>
 
         <div className="icono-entregas">📝</div>
@@ -166,7 +198,36 @@ function EntregasAdmin({ token }) {
 
               <div className="respuesta-entrega">
                 <strong>Respuesta del aprendiz</strong>
-                <p>{entrega.respuesta}</p>
+                <p>{entrega.respuesta || 'El aprendiz envió archivos adjuntos.'}</p>
+              </div>
+
+              <div className="archivos-entrega-admin">
+                <strong>📎 Archivos adjuntos</strong>
+
+                {entrega.archivos?.length > 0 ? (
+                  entrega.archivos.map((archivo) => (
+                    <div className="archivo-adjunto" key={archivo.id}>
+                      <span>
+                        📄 {archivo.nombre_original}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          descargarArchivo(
+                            entrega.id,
+                            archivo.id,
+                            archivo.nombre_original
+                          )
+                        }
+                      >
+                        Descargar
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p>Esta entrega no tiene archivos adjuntos.</p>
+                )}
               </div>
 
               <div className="evaluacion-entrega">
