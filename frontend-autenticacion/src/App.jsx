@@ -1,6 +1,9 @@
 
 import { useState } from 'react';
 import './App.css';
+import Actividades from './components/Actividades';
+import ActividadesAprendiz from './components/ActividadesAprendiz';
+import EntregasAdmin from './components/EntregasAdmin';
 
 function App() {
   const [modo, setModo] = useState('registro');
@@ -84,7 +87,6 @@ function App() {
         return;
       }
 
-      // Guardar sesión y token
       if (!resultado.token || !resultado.usuario) {
         setMensaje('El servidor no devolvió los datos de sesión');
         return;
@@ -94,7 +96,6 @@ function App() {
       setSesion(resultado.usuario);
       localStorage.setItem('token', resultado.token);
 
-      // Consultar aprendices si es administrador
       if (resultado.usuario.rol === 'admin') {
         setCargando(true);
 
@@ -124,194 +125,313 @@ function App() {
     }
   };
 
-  // Panel del administrador
+  // PANEL DEL ADMINISTRADOR
   if (sesion && sesion.rol === 'admin') {
     return (
-      <div className="contenedor">
-        <h2>Panel de administrador</h2>
+      <div className="panel-principal">
 
-        <h3>Listado de aprendices</h3>
+        <header className="barra-superior">
+          <div className="marca-sistema">
+            <div className="marca-icono">📘</div>
+            <div>
+              <h1>Gestión Académica</h1>
+              <span>Panel administrativo</span>
+            </div>
+          </div>
 
-        {cargando ? (
-          <p>Cargando aprendices...</p>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              marginTop: '20px'
-            }}>
-              <thead>
-                <tr>
-                  {['ID', 'Nombre', 'Apellidos', 'Correo', 'Teléfono', 'Usuario', 'Rol'].map((titulo) => (
-                    <th key={titulo} style={{
-                      border: '1px solid #ccc',
-                      padding: '10px',
-                      background: '#1a5da8',
-                      color: 'white'
-                    }}>
-                      {titulo}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
+          <div className="usuario-superior">
+            <div className="avatar-usuario">A</div>
+            <div className="datos-superior">
+              <strong>{sesion.usuario}</strong>
+              <small>Administrador</small>
+            </div>
+            <button className="boton-salir" onClick={cerrarSesion}>
+              Cerrar sesión
+            </button>
+          </div>
+        </header>
 
-              <tbody>
-                {aprendices.map((persona) => (
-                  <tr key={persona.id}>
-                    {[
-                      persona.id,
-                      persona.nombre,
-                      persona.apellidos,
-                      persona.correo,
-                      persona.telefono,
-                      persona.usuario,
-                      persona.rol
-                    ].map((dato, indice) => (
-                      <td key={indice} style={{
-                        border: '1px solid #ccc',
-                        padding: '10px'
-                      }}>
-                        {dato}
-                      </td>
+        <main className="contenido-panel">
+          <div className="bienvenida-panel">
+            <span className="etiqueta-seccion">ADMINISTRACIÓN DEL SISTEMA</span>
+            <h2>¡Bienvenido, {sesion.usuario}!</h2>
+            <p>Desde aquí puedes administrar aprendices, actividades y entregas.</p>
+          </div>
+
+          <div className="tarjeta-seccion">
+            <div className="titulo-seccion-panel">
+              <div>
+                <h3>👥 Listado de aprendices</h3>
+                <p>Consulta los usuarios registrados en el sistema.</p>
+              </div>
+              <span className="contador-actividades">
+                {aprendices.length} aprendices
+              </span>
+            </div>
+
+            {cargando ? (
+              <p>Cargando aprendices...</p>
+            ) : (
+              <div className="tabla-contenedor">
+                <table>
+                  <thead>
+                    <tr>
+                      {['ID', 'Nombre', 'Apellidos', 'Correo', 'Teléfono', 'Usuario', 'Rol'].map((titulo) => (
+                        <th key={titulo}>{titulo}</th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {aprendices.map((persona) => (
+                      <tr key={persona.id}>
+                        <td>{persona.id}</td>
+                        <td>{persona.nombre}</td>
+                        <td>{persona.apellidos}</td>
+                        <td>{persona.correo}</td>
+                        <td>{persona.telefono}</td>
+                        <td>{persona.usuario}</td>
+                        <td>
+                          <span className="etiqueta-rol">{persona.rol}</span>
+                        </td>
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  </tbody>
+                </table>
 
-            {aprendices.length === 0 && (
-              <p>No hay aprendices registrados.</p>
+                {aprendices.length === 0 && (
+                  <p>No hay aprendices registrados.</p>
+                )}
+              </div>
             )}
           </div>
-        )}
 
-        {mensaje && <p>{mensaje}</p>}
+          <div className="tarjeta-seccion">
+            <Actividades token={token} />
+          </div>
 
-        <button type="button" onClick={cerrarSesion}>
-          Cerrar sesión
-        </button>
+          <div className="tarjeta-seccion">
+            <EntregasAdmin token={token} />
+          </div>
+
+          {mensaje && <div className="mensaje-actividad">{mensaje}</div>}
+        </main>
+
+        <footer className="pie-pagina">
+          Sistema de Gestión Académica
+        </footer>
       </div>
     );
   }
 
-  // Panel del aprendiz
+  // PANEL DEL APRENDIZ
   if (sesion && sesion.rol === 'aprendiz') {
     return (
-      <div className="contenedor">
-        <h2>Panel de control</h2>
+      <div className="panel-principal">
 
-        <h3>Bienvenido, {sesion.usuario}</h3>
+        <header className="barra-superior">
+          <div className="marca-sistema">
+            <div className="marca-icono">📘</div>
+            <div>
+              <h1>Gestión Académica</h1>
+              <span>Panel del aprendiz</span>
+            </div>
+          </div>
 
-        <p>Has iniciado sesión correctamente.</p>
+          <div className="usuario-superior">
+            <div className="avatar-usuario">
+              {sesion.usuario.charAt(0).toUpperCase()}
+            </div>
+            <div className="datos-superior">
+              <strong>{sesion.usuario}</strong>
+              <small>Aprendiz</small>
+            </div>
+            <button className="boton-salir" onClick={cerrarSesion}>
+              Cerrar sesión
+            </button>
+          </div>
+        </header>
 
-        <p><strong>ID:</strong> {sesion.id}</p>
-        <p><strong>Usuario:</strong> {sesion.usuario}</p>
-        <p><strong>Rol:</strong> {sesion.rol}</p>
+        <main className="contenido-panel">
 
-        <button type="button" onClick={cerrarSesion}>
-          Cerrar sesión
-        </button>
+          <div className="bienvenida-panel tarjeta-bienvenida-aprendiz">
+            <span className="etiqueta-seccion">MI ESPACIO ACADÉMICO</span>
+            <h2>¡Hola, {sesion.usuario}! 👋</h2>
+            <p>Bienvenido a tu panel de control. Aquí puedes consultar y entregar tus actividades.</p>
+
+            <div className="datos-aprendiz">
+              <div>
+                <small>IDENTIFICACIÓN</small>
+                <strong>{sesion.id}</strong>
+              </div>
+
+              <div>
+                <small>USUARIO</small>
+                <strong>{sesion.usuario}</strong>
+              </div>
+
+              <div>
+                <small>ROL</small>
+                <strong>Aprendiz</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="tarjeta-seccion">
+            <ActividadesAprendiz token={token} />
+          </div>
+
+        </main>
+
+        <footer className="pie-pagina">
+          Sistema de Gestión Académica
+        </footer>
       </div>
     );
   }
 
+  // REGISTRO E INICIO DE SESIÓN
   return (
-    <div className="contenedor">
-      <div className="botones">
-        <button type="button" onClick={() => {
-          setModo('registro');
-          setMensaje('');
-        }}>
-          Crear cuenta
-        </button>
+    <div className="pantalla-autenticacion">
 
-        <button type="button" onClick={() => {
-          setModo('login');
-          setMensaje('');
-        }}>
-          Iniciar sesión
-        </button>
+      <div className="presentacion-login">
+        <div className="logo-login">📘</div>
+        <h1>Gestión Académica</h1>
+        <p>Un espacio para administrar actividades, entregas y aprendizaje.</p>
+        <div className="decoracion-login">✦</div>
       </div>
 
-      <form onSubmit={manejarEnvio}>
-        <h2>{modo === 'registro' ? 'Crear cuenta' : 'Iniciar sesión'}</h2>
+      <div className="contenedor contenedor-login">
 
-        {modo === 'registro' && (
-          <>
-            <input
-              type="text"
-              placeholder="Nombres"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
-            />
+        <div className="botones">
+          <button
+            type="button"
+            className={modo === 'registro' ? 'boton-seleccionado' : 'boton-secundario'}
+            onClick={() => {
+              setModo('registro');
+              setMensaje('');
+            }}
+          >
+            Crear cuenta
+          </button>
 
-            <input
-              type="text"
-              placeholder="Apellidos"
-              value={apellidos}
-              onChange={(e) => setApellidos(e.target.value)}
-              required
-            />
+          <button
+            type="button"
+            className={modo === 'login' ? 'boton-seleccionado' : 'boton-secundario'}
+            onClick={() => {
+              setModo('login');
+              setMensaje('');
+            }}
+          >
+            Iniciar sesión
+          </button>
+        </div>
 
-            <input
-              type="date"
-              value={fechaNacimiento}
-              onChange={(e) => setFechaNacimiento(e.target.value)}
-              required
-            />
+        <div className="titulo-login">
+          <h2>{modo === 'registro' ? 'Crear una cuenta' : '¡Qué bueno tenerte de vuelta!'}</h2>
+          <p>
+            {modo === 'registro'
+              ? 'Completa tus datos para registrarte.'
+              : 'Ingresa tus datos para acceder al sistema.'}
+          </p>
+        </div>
 
-            <input
-              type="email"
-              placeholder="Correo electrónico"
-              value={correo}
-              onChange={(e) => setCorreo(e.target.value)}
-              required
-            />
+        <form onSubmit={manejarEnvio}>
 
-            <input
-              type="tel"
-              placeholder="Número de celular"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              required
-            />
-          </>
-        )}
+          {modo === 'registro' && (
+            <>
+              <label>Nombres</label>
+              <input
+                type="text"
+                placeholder="Escribe tus nombres"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                required
+              />
 
-        <input
-          type="text"
-          placeholder="Usuario"
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-          required
-        />
+              <label>Apellidos</label>
+              <input
+                type="text"
+                placeholder="Escribe tus apellidos"
+                value={apellidos}
+                onChange={(e) => setApellidos(e.target.value)}
+                required
+              />
 
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+              <label>Fecha de nacimiento</label>
+              <input
+                type="date"
+                value={fechaNacimiento}
+                onChange={(e) => setFechaNacimiento(e.target.value)}
+                required
+              />
 
-        {modo === 'registro' && (
+              <label>Correo electrónico</label>
+              <input
+                type="email"
+                placeholder="ejemplo@correo.com"
+                value={correo}
+                onChange={(e) => setCorreo(e.target.value)}
+                required
+              />
+
+              <label>Número de celular</label>
+              <input
+                type="tel"
+                placeholder="Tu número de celular"
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                required
+              />
+            </>
+          )}
+
+          <label>Usuario</label>
           <input
-            type="password"
-            placeholder="Confirmar contraseña"
-            value={confirmarPassword}
-            onChange={(e) => setConfirmarPassword(e.target.value)}
+            type="text"
+            placeholder="Escribe tu usuario"
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
             required
           />
-        )}
 
-        <button type="submit">
-          {modo === 'registro' ? 'Registrarse' : 'Ingresar'}
-        </button>
-      </form>
+          <label>Contraseña</label>
+          <input
+            type="password"
+            placeholder="Escribe tu contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-      {mensaje && <p>{mensaje}</p>}
+          {modo === 'registro' && (
+            <>
+              <label>Confirmar contraseña</label>
+              <input
+                type="password"
+                placeholder="Repite tu contraseña"
+                value={confirmarPassword}
+                onChange={(e) => setConfirmarPassword(e.target.value)}
+                required
+              />
+            </>
+          )}
+
+          <button type="submit" className="boton-ingresar">
+            {modo === 'registro' ? 'Crear mi cuenta' : 'Ingresar al sistema'}
+          </button>
+        </form>
+
+        {mensaje && <div className="mensaje-actividad">{mensaje}</div>}
+
+        <p className="texto-seguridad">
+          Sistema de acceso seguro por usuario y contraseña.
+        </p>
+      </div>
+
+      <footer className="pie-login">
+        Sistema de Gestión Académica
+      </footer>
     </div>
   );
 }
